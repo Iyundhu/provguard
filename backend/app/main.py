@@ -45,7 +45,9 @@ app.include_router(api_router)
 
 # Static files and templates for the frontend
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
-app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
+STATIC_DIR = FRONTEND_DIR / "static"
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(FRONTEND_DIR / "templates"))
 
 
