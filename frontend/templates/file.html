@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{{ file.original_filename }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+{% set decision_class = 'trusted' if file.decision == 'TRUSTED' else ('suspicious' if file.decision == 'SUSPICIOUS' else 'malicious') %}
+
+<a href="/" class="text-sm text-slate2 hover:text-accent">&larr; Back to dashboard</a>
+
+<!-- Verdict banner -->
+<section class="bg-{{ decision_class }} text-white rounded-2xl p-8 mt-4 mb-8">
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+    <div>
+      <p class="text-white/80 text-sm uppercase tracking-widest font-semibold">Verdict</p>
+      <h1 class="text-5xl font-extrabold mt-1">{{ file.decision }}</h1>
+      <p class="text-white/90 mt-3 max-w-2xl">{{ file.original_filename }}</p>
+    </div>
+    <div class="text-right">
+      <p class="text-white/80 text-sm uppercase tracking-widest font-semibold">Risk score</p>
+      <div class="text-6xl font-extrabold leading-none">{{ "%.0f"|format(file.final_score) }}<span class="text-3xl text-white/70">/100</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Score breakdown -->
+<section class="grid md:grid-cols-3 gap-4 mb-8">
+  <div class="bg-white rounded-xl p-5 shadow-sm">
+    <div class="flex items-center justify-between">
+      <p class="text-xs uppercase tracking-wider text-slate2 font-semibold">Threat Intelligence</p>
+      <span class="text-xs text-slate2">50%</span>
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ "%.0f"|format(file.threat_score) }}<span class="text-base text-slate2">/100</span></div>
+    <div class="w-full bg-mist rounded-full h-2 mt-3">
+      <div class="bg-accent h-2 rounded-full" style="width: {{ file.threat_score }}%"></div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm">
+    <div class="flex items-center justify-between">
+      <p class="text-xs uppercase tracking-wider text-slate2 font-semibold">Provenance</p>
+      <span class="text-xs text-slate2">30%</span>
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ "%.0f"|format(file.provenance_score) }}<span class="text-base text-slate2">/100</span></div>
+    <div class="w-full bg-mist rounded-full h-2 mt-3">
+      <div class="bg-accent h-2 rounded-full" style="width: {{ file.provenance_score }}%"></div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm">
+    <div class="flex items-center justify-between">
+      <p class="text-xs uppercase tracking-wider text-slate2 font-semibold">Behavioral</p>
+      <span class="text-xs text-slate2">20%</span>
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ "%.0f"|format(file.behavioral_score) }}<span class="text-base text-slate2">/100</span></div>
+    <div class="w-full bg-mist rounded-full h-2 mt-3">
+      <div class="bg-accent h-2 rounded-full" style="width: {{ file.behavioral_score }}%"></div>
+    </div>
+  </div>
+</section>
+
+<!-- File details -->
+<section class="bg-white rounded-2xl shadow-sm p-8 mb-8">
+  <h2 class="font-bold text-xl mb-4">File details</h2>
+  <dl class="grid md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+    <div><dt class="text-slate2">File ID</dt><dd class="mono">{{ file.file_id }}</dd></div>
+    <div><dt class="text-slate2">Filename</dt><dd>{{ file.original_filename }}</dd></div>
+    <div class="md:col-span-2"><dt class="text-slate2">SHA-256</dt><dd class="mono text-xs hash">{{ file.sha256 }}</dd></div>
+    <div><dt class="text-slate2">Size</dt><dd>{{ file.size_bytes }} bytes</dd></div>
+    <div><dt class="text-slate2">MIME type</dt><dd>{{ file.mime_type }}</dd></div>
+    <div><dt class="text-slate2">Uploader</dt><dd>{{ file.uploader }}</dd></div>
+    <div><dt class="text-slate2">Uploaded</dt><dd>{{ file.uploaded_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}</dd></div>
+  </dl>
+  <div class="mt-6">
+    <a href="/api/file/{{ file.file_id }}/certificate"
+       class="inline-block bg-ink hover:bg-accent text-white font-semibold py-3 px-5 rounded-lg transition">
+      Download verification certificate (PDF)
+    </a>
+  </div>
+</section>
+
+<!-- Engine reports -->
+<section class="grid md:grid-cols-3 gap-4 mb-8">
+  <div class="bg-white rounded-xl p-5 shadow-sm">
+    <h3 class="font-bold mb-2">Threat Intelligence</h3>
+    <p id="threatExplain" class="text-sm text-slate2"></p>
+  </div>
+  <div class="bg-white rounded-xl p-5 shadow-sm">
+    <h3 class="font-bold mb-2">Provenance</h3>
+    <p id="provExplain" class="text-sm text-slate2"></p>
+  </div>
+  <div class="bg-white rounded-xl p-5 shadow-sm">
+    <h3 class="font-bold mb-2">Behavioral</h3>
+    <p id="behavExplain" class="text-sm text-slate2"></p>
+  </div>
+</section>
+
+<!-- Provenance chain for this file -->
+<section class="bg-white rounded-2xl shadow-sm p-8 mb-8">
+  <h2 class="font-bold text-xl mb-1">Provenance chain</h2>
+  <p class="text-sm text-slate2 mb-6">Each block is digitally signed with the system's RSA-2048 key and links to the previous block by hash. Tampering breaks the chain.</p>
+
+  <div class="space-y-4">
+    {% for b in blocks %}
+    <div class="border border-slate-200 rounded-xl p-5 relative">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <div class="text-xs text-slate2 uppercase tracking-wider">Block {{ b.block_index }}</div>
+          <div class="font-bold text-lg">{{ b.event_type }}</div>
+        </div>
+        <div class="text-xs text-slate2 mono">{{ b.timestamp.strftime("%H:%M:%S") }}</div>
+      </div>
+      <div class="text-xs mono text-slate2 hash">
+        <div><span class="text-ink/60">prev:</span> {{ b.previous_hash[:48] }}&hellip;</div>
+        <div><span class="text-accent">hash:</span> {{ b.block_hash[:48] }}&hellip;</div>
+        <div><span class="text-ink/60">sig:</span> {{ b.signature[:48] }}&hellip;</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+fetch(`/api/file/{{ file.file_id }}`).then(r => r.json()).then(data => {
+  document.getElementById('threatExplain').textContent = data.threat_details.details || '—';
+  document.getElementById('provExplain').textContent = data.provenance_details.explanation || '—';
+  document.getElementById('behavExplain').textContent = data.behavioral_details.explanation || '—';
+});
+</script>
+{% endblock %}

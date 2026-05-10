@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          colors: {
+            ink: '#0a2540',
+            mist: '#f0f3f7',
+            slate2: '#5a6b7a',
+            trusted: '#0d7c3d',
+            suspicious: '#b87100',
+            malicious: '#b81d24',
+            accent: '#0066ff'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .hash { word-break: break-all; }
+    .chain-line { background: linear-gradient(180deg, #0066ff 0%, #0066ff33 100%); }
+  </style>
+</head>
+<body class="bg-mist text-ink min-h-screen">
+  <nav class="bg-ink text-white">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-accent flex items-center justify-center font-bold text-white">P</div>
+        <div>
+          <div class="font-bold text-lg leading-tight">{{ app_name }}</div>
+          <div class="text-xs text-white/60">Trust by verification, not detection</div>
+        </div>
+      </a>
+      <div class="flex items-center gap-6 text-sm">
+        <a href="/" class="hover:text-accent">Upload</a>
+        <a href="/chain" class="hover:text-accent">Provenance Chain</a>
+        <a href="/api/stats" class="hover:text-accent">API Stats</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-6 py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-6 py-8 text-center text-sm text-slate2">
+    <p>{{ app_name }} &middot; CSC3217 Emerging Trends Project &middot; Digital Provenance &amp; Preemptive Cybersecurity</p>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

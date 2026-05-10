@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Provenance chain - {{ app_name }}{% endblock %}
+
+{% block content %}
+<a href="/" class="text-sm text-slate2 hover:text-accent">&larr; Back to dashboard</a>
+
+<section class="mt-4 mb-8">
+  <h1 class="text-3xl font-extrabold">Provenance chain</h1>
+  <p class="text-slate2 mt-2 max-w-3xl">
+    The hash-chained ledger of every verification event. Each block stores the
+    SHA-256 hash of the previous block and is digitally signed. Tampering with
+    any historical block breaks the chain.
+  </p>
+</section>
+
+<section class="bg-white rounded-2xl shadow-sm p-8 mb-8">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-bold text-xl">Chain integrity</h2>
+    <button id="verifyBtn" class="bg-ink hover:bg-accent text-white font-semibold py-2 px-4 rounded-lg text-sm transition">
+      Verify chain
+    </button>
+  </div>
+  <div id="verifyResult" class="text-sm text-slate2">Click "Verify chain" to recompute and validate every block.</div>
+</section>
+
+<section class="bg-white rounded-2xl shadow-sm p-8">
+  <h2 class="font-bold text-xl mb-4">All blocks ({{ blocks|length }})</h2>
+
+  {% if blocks %}
+  <div class="relative">
+    <div class="absolute left-4 top-2 bottom-2 w-0.5 chain-line"></div>
+    <div class="space-y-4">
+      {% for b in blocks %}
+      <div class="relative pl-12">
+        <div class="absolute left-2 top-3 w-4 h-4 rounded-full bg-accent ring-4 ring-mist"></div>
+        <div class="border border-slate-200 rounded-xl p-4 hover:border-accent transition">
+          <div class="flex items-start justify-between flex-wrap gap-2">
+            <div>
+              <div class="text-xs text-slate2 uppercase tracking-wider">Block {{ b.block_index }}</div>
+              <div class="font-bold">{{ b.event_type }}</div>
+              <div class="text-xs text-slate2">file: <a href="/file/{{ b.file_id }}" class="hover:text-accent mono">{{ b.file_id[:8] }}&hellip;</a></div>
+            </div>
+            <div class="text-xs text-slate2 mono">{{ b.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</div>
+          </div>
+          <div class="text-xs mono text-slate2 hash mt-2">
+            <div><span class="text-accent">hash:</span> {{ b.block_hash[:64] }}&hellip;</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <p class="text-slate2 text-sm">No blocks yet. Upload a file from the home page to create the genesis block.</p>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('verifyBtn').addEventListener('click', async () => {
+  const out = document.getElementById('verifyResult');
+  out.textContent = 'Verifying every block in the ledger…';
+  try {
+    const res = await fetch('/api/chain/verify');
+    const data = await res.json();
+    if (data.valid) {
+      out.innerHTML = `
+        <div class="bg-trusted/10 border border-trusted/30 text-trusted font-semibold p-4 rounded-lg">
+          ✓ Chain is intact &mdash; all ${data.total_blocks} blocks verified successfully.
+          Every block's hash recomputes correctly, every previous-hash link matches,
+          and every digital signature is valid.
+        </div>
+      `;
+    } else {
+      out.innerHTML = `
+        <div class="bg-malicious/10 border border-malicious/30 text-malicious font-semibold p-4 rounded-lg">
+          ✗ Chain integrity violation detected at block ${data.broken_at}.
+          Tampering or corruption has occurred. The remaining chain cannot be trusted.
+        </div>
+      `;
+    }
+  } catch (e) {
+    out.textContent = 'Verification failed: ' + e.message;
+  }
+});
+</script>
+{% endblock %}

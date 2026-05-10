@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}{{ app_name }} - Verify a file{% endblock %}
+
+{% block content %}
+<section class="mb-12">
+  <div class="max-w-3xl">
+    <p class="text-sm font-semibold text-accent uppercase tracking-widest mb-3">Digital Provenance &amp; Preemptive Cybersecurity</p>
+    <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
+      Verify any file before it enters your system.
+    </h1>
+    <p class="text-lg text-slate2 leading-relaxed">
+      ProvGuard fuses cryptographic provenance with preemptive threat analysis.
+      Upload a file and the system checks its origin, scans known threat intelligence,
+      and analyses behavioural patterns &mdash; producing a tamper-evident verdict
+      <span class="font-semibold text-ink">before</span> the file is ever opened.
+    </p>
+  </div>
+</section>
+
+<!-- Upload card -->
+<section class="bg-white rounded-2xl shadow-sm p-8 mb-10">
+  <h2 class="font-bold text-xl mb-1">Upload a file for verification</h2>
+  <p class="text-sm text-slate2 mb-6">Max 25 MB. The file is hashed locally and checked against threat intelligence.</p>
+
+  <form id="uploadForm" class="space-y-4">
+    <label class="block">
+      <span class="text-sm font-medium">File</span>
+      <input type="file" id="fileInput" required
+             class="mt-2 block w-full text-sm text-slate2
+                    file:mr-4 file:py-3 file:px-5 file:rounded-lg file:border-0
+                    file:text-sm file:font-semibold file:bg-ink file:text-white
+                    hover:file:bg-accent cursor-pointer
+                    border border-slate-200 rounded-lg p-2 bg-mist" />
+    </label>
+    <label class="block">
+      <span class="text-sm font-medium">Uploader (optional)</span>
+      <input type="text" id="uploaderInput" placeholder="e.g. iyundhu"
+             class="mt-2 block w-full text-sm border border-slate-200 rounded-lg p-3 bg-mist focus:outline-none focus:ring-2 focus:ring-accent" />
+    </label>
+    <button type="submit" id="uploadBtn"
+            class="bg-accent hover:bg-ink text-white font-semibold py-3 px-6 rounded-lg transition">
+      Verify file
+    </button>
+  </form>
+
+  <div id="uploadStatus" class="mt-6 hidden"></div>
+</section>
+
+<!-- Stats strip -->
+<section class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10" id="statsStrip">
+  <!-- filled by JS -->
+</section>
+
+<!-- Recent verifications -->
+<section class="bg-white rounded-2xl shadow-sm p-8">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-bold text-xl">Recent verifications</h2>
+    <a href="/chain" class="text-sm text-accent hover:underline">View provenance chain &rarr;</a>
+  </div>
+
+  {% if recent_files %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="text-xs uppercase text-slate2 border-b">
+        <tr>
+          <th class="text-left py-3">File</th>
+          <th class="text-left py-3">Hash</th>
+          <th class="text-left py-3">Decision</th>
+          <th class="text-left py-3">Score</th>
+          <th class="text-left py-3">When</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in recent_files %}
+        <tr class="border-b last:border-0 hover:bg-mist">
+          <td class="py-3">
+            <a href="/file/{{ f.file_id }}" class="font-medium hover:text-accent">{{ f.original_filename }}</a>
+            <div class="text-xs text-slate2">{{ f.size_bytes }} bytes &middot; {{ f.mime_type }}</div>
+          </td>
+          <td class="py-3 mono text-xs">{{ f.sha256[:16] }}&hellip;</td>
+          <td class="py-3">
+            {% if f.decision == "TRUSTED" %}
+              <span class="px-2 py-1 rounded-md bg-trusted/10 text-trusted text-xs font-semibold">TRUSTED</span>
+            {% elif f.decision == "SUSPICIOUS" %}
+              <span class="px-2 py-1 rounded-md bg-suspicious/10 text-suspicious text-xs font-semibold">SUSPICIOUS</span>
+            {% else %}
+              <span class="px-2 py-1 rounded-md bg-malicious/10 text-malicious text-xs font-semibold">MALICIOUS</span>
+            {% endif %}
+          </td>
+          <td class="py-3 font-semibold">{{ "%.1f"|format(f.final_score) }}</td>
+          <td class="py-3 text-slate2 text-xs">{{ f.uploaded_at.strftime("%Y-%m-%d %H:%M") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-slate2 text-sm">No files have been verified yet. Upload one above to begin.</p>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadStats() {
+  try {
+    const res = await fetch('/api/stats');
+    const stats = await res.json();
+    const strip = document.getElementById('statsStrip');
+    strip.innerHTML = `
+      <div class="bg-white rounded-xl p-4 shadow-sm">
+        <div class="text-xs text-slate2 uppercase tracking-wider">Files verified</div>
+        <div class="text-2xl font-bold mt-1">${stats.total_files}</div>
+      </div>
+      <div class="bg-white rounded-xl p-4 shadow-sm">
+        <div class="text-xs text-trusted uppercase tracking-wider">Trusted</div>
+        <div class="text-2xl font-bold mt-1">${stats.trusted}</div>
+      </div>
+      <div class="bg-white rounded-xl p-4 shadow-sm">
+        <div class="text-xs text-suspicious uppercase tracking-wider">Suspicious</div>
+        <div class="text-2xl font-bold mt-1">${stats.suspicious}</div>
+      </div>
+      <div class="bg-white rounded-xl p-4 shadow-sm">
+        <div class="text-xs text-malicious uppercase tracking-wider">Malicious</div>
+        <div class="text-2xl font-bold mt-1">${stats.malicious}</div>
+      </div>
+      <div class="bg-white rounded-xl p-4 shadow-sm">
+        <div class="text-xs text-accent uppercase tracking-wider">Chain blocks</div>
+        <div class="text-2xl font-bold mt-1">${stats.blocks_in_chain}</div>
+      </div>
+    `;
+  } catch (e) {
+    console.error(e);
+  }
+}
+loadStats();
+
+const form = document.getElementById('uploadForm');
+const status = document.getElementById('uploadStatus');
+const btn = document.getElementById('uploadBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fileInput = document.getElementById('fileInput');
+  const uploader = document.getElementById('uploaderInput').value || 'anonymous';
+  if (!fileInput.files.length) return;
+
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+
+  btn.disabled = true;
+  btn.textContent = 'Verifying…';
+  status.classList.remove('hidden');
+  status.innerHTML = `
+    <div class="flex items-center gap-3 text-slate2">
+      <svg class="animate-spin h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"></circle>
+        <path d="M4 12a8 8 0 018-8" stroke="currentColor" stroke-width="4" class="opacity-75"></path>
+      </svg>
+      Hashing, querying threat intelligence, analysing behaviour…
+    </div>
+  `;
+
+  try {
+    const res = await fetch(`/api/upload?uploader=${encodeURIComponent(uploader)}`, {
+      method: 'POST', body: fd
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    window.location.href = `/file/${data.file_id}`;
+  } catch (err) {
+    status.innerHTML = `<div class="text-malicious font-medium">Upload failed: ${err.message}</div>`;
+    btn.disabled = false;
+    btn.textContent = 'Verify file';
+  }
+});
+</script>
+{% endblock %}
