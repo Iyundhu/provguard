@@ -1,4 +1,4 @@
-# ProvGuard
+## ProvGuard
 
 > Trust by Verification, Not Detection.
 
@@ -230,5 +230,3 @@ Local relevance: positioned for Ugandan financial services (mobile money fraud p
 ---
 
 ## License
-
-Educational / academic use.
