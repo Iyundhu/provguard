@@ -227,6 +227,4 @@ Full interactive docs at `/docs` (FastAPI auto-generated Swagger UI).
 Topic: **Digital Provenance & Preemptive Cybersecurity**.
 Local relevance: positioned for Ugandan financial services (mobile money fraud preemption), media verification (election misinformation), and government software supply chain (NITA-U procurement).
 
----
 
-## License
